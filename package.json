@@ -1,0 +1,23 @@
+{
+	"name": "timetask",
+	"version": "1.0.0",
+	"private": true,
+	"author": "@boucinhas.dev",
+	"scripts": {
+		"web": "npm run dev -w web",
+		"lint": "biome check .",
+		"format": "biome format .",
+		"fix": "biome check . --write"
+	},
+	"workspaces": [
+		"apps/*",
+		"packages/*"
+	],
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.10"
+	},
+	"dependencies": {
+		"@tailwindcss/vite": "^4.2.2",
+		"tailwindcss": "^4.2.2"
+	}
+}

@@ -1,0 +1,23 @@
+{
+	"name": "api",
+	"version": "1.0.0",
+	"main": "index.js",
+	"scripts": {
+		"dev": "tsx watch src/server.ts",
+		"start": "node dist/server.js",
+		"build": "tsup",
+		"type-check": "tsc --noEmit"
+	},
+	"type": "module",
+	"dependencies": {
+		"express": "^5.2.1"
+	},
+	"devDependencies": {
+		"@tsconfig/node22": "^22.0.5",
+		"@types/express": "^5.0.6",
+		"@types/node": "^25.5.2",
+		"tsup": "^8.5.1",
+		"tsx": "^4.21.0",
+		"typescript": "^6.0.2"
+	}
+}
