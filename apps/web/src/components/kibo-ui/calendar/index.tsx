@@ -276,8 +276,12 @@ export const CalendarBody = ({ features, children, onDayClick, maxItemsPerDay = 
     days.push(
       <div
         className={cn(
-          "relative flex h-full w-full flex-col gap-1 p-1 text-xs",
-          isPast && !hasTasks ? "bg-muted/40" : "",
+          "relative flex h-full w-full flex-col gap-1 p-1 text-xs transition-colors duration-150 cursor-pointer",
+          isPast && !hasTasks
+            ? "bg-muted/40 hover:bg-muted/60"
+            : isCurrentDay
+              ? "hover:bg-primary/5"
+              : "hover:bg-muted/30",
         )}
         key={day}
       >
