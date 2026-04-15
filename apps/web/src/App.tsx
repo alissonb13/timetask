@@ -88,7 +88,7 @@ function App() {
 	const periodTotal = isCalendar ? monthTotal : weekTotal;
 
 	return (
-		<div className="min-h-screen bg-background">
+		<div className="min-h-screen bg-background flex flex-col">
 			<header className="sticky top-0 z-10 border-b border-border/60 bg-card/80 backdrop-blur-sm">
 				<div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
 					<div className="flex items-center gap-2.5">
@@ -117,7 +117,7 @@ function App() {
 				</div>
 			</header>
 
-			<main className="max-w-6xl mx-auto px-6 py-6">
+			<main className="max-w-6xl mx-auto px-6 py-6 flex-1 w-full">
 				<Tabs
 					defaultValue="list"
 					className="w-full"
@@ -154,6 +154,22 @@ function App() {
 			</main>
 
 			<NewTaskDialog open={newTaskOpen} onOpenChange={setNewTaskOpen} />
+
+			<footer className="border-t border-border/40 mt-8">
+				<div className="max-w-6xl mx-auto px-6 h-10 flex items-center justify-center">
+					<p className="text-[11px] text-muted-foreground/40">
+						Built by{" "}
+						<a
+							href="https://www.linkedin.com/in/alissonboucinhas/"
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-muted-foreground/60 hover:text-foreground transition-colors font-medium"
+						>
+							@boucinhas.dev
+						</a>
+					</p>
+				</div>
+			</footer>
 		</div>
 	);
 }

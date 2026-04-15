@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { Calendar1Icon, ChevronDownIcon, ChevronRightIcon, ClockIcon, FolderIcon } from "lucide-react";
 import { useState } from "react";
 import {
@@ -27,7 +27,7 @@ import { TaskStatus, calculateDuration, useTaskContext, type Task } from "@/cont
 import { formatDuration } from "@/lib/format-duration";
 import { TaskActions } from "./task-actions";
 import { TaskStatusBadge } from "./task-status-badge";
-import { buildTimeline, formatTime } from "./task-time-range";
+import { TimelineList, buildTimeline } from "./task-time-range";
 
 const STATUS_COLOR: Record<string, string> = {
 	[TaskStatus.PENDING]: "#94a3b8",
@@ -48,7 +48,7 @@ function taskToFeature(task: Task): Feature {
 	const endAt =
 		task.status === TaskStatus.COMPLETED && lastInterval?.endedAt
 			? lastInterval.endedAt
-			: task.createdAt;
+			: startOfDay(new Date());
 
 	return {
 		id: task.id,
@@ -115,18 +115,8 @@ function TaskCalendarItem({ feature, task }: TaskCalendarItemProps) {
 							</div>
 						)}
 						{timeline.length > 0 && (
-							<div className="flex flex-col gap-1.5 pt-0.5">
-								{timeline.map((event, i) => (
-									<div key={i} className="flex items-center gap-2">
-										{event.icon}
-										<span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-											{formatTime(event.time)}
-										</span>
-										<span className="text-[10px] text-muted-foreground/40 uppercase tracking-wider ml-1">
-											{event.label}
-										</span>
-									</div>
-								))}
+							<div className="pt-0.5">
+								<TimelineList events={timeline} />
 							</div>
 						)}
 					</div>
@@ -213,21 +203,8 @@ function DaySheetTask({ task }: { task: Task }) {
 
 					{/* Timeline — collapsible, dot-connected */}
 					{timelineOpen && timeline.length > 0 && (
-						<div className="mt-2.5 ml-[18px] relative">
-							<div className="absolute left-[3px] top-2 bottom-2 w-px bg-border/40" />
-							<div className="flex flex-col gap-2">
-								{timeline.map((event, i) => (
-									<div key={i} className="flex items-center gap-2.5">
-										<div className="w-[7px] h-[7px] rounded-full border border-border/60 bg-background shrink-0 relative z-10" />
-										<span className="font-mono text-[11px] text-muted-foreground tabular-nums">
-											{formatTime(event.time)}
-										</span>
-										<span className="text-[10px] text-muted-foreground/35 uppercase tracking-wider">
-											{event.label}
-										</span>
-									</div>
-								))}
-							</div>
+						<div className="mt-2.5 ml-[18px]">
+							<TimelineList events={timeline} />
 						</div>
 					)}
 				</div>
