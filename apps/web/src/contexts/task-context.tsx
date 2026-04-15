@@ -72,7 +72,7 @@ function loadGroups(): string[] {
 interface TaskContextValue {
 	tasks: Task[];
 	groups: string[];
-	addTask: (title: string, group: string) => void;
+	addTask: (title: string, group: string, date?: Date) => void;
 	addGroup: (name: string) => void;
 	updateTask: (id: string, updates: Partial<Pick<Task, "title" | "group">>) => void;
 	deleteTask: (id: string) => void;
@@ -96,13 +96,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 		localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(groups));
 	}, [groups]);
 
-	function addTask(title: string, group: string) {
+	function addTask(title: string, group: string, date?: Date) {
 		const task: Task = {
 			id: crypto.randomUUID(),
 			title,
 			group,
 			status: TaskStatus.PENDING,
-			createdAt: new Date(),
+			createdAt: date ?? new Date(),
 			intervals: [],
 		};
 		setTasks((prev) => [task, ...prev]);

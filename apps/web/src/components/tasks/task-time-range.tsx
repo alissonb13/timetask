@@ -13,13 +13,13 @@ interface TaskTimeRangeHistoryProps {
 	status: Task["status"];
 }
 
-type TimelineEvent = {
+export type TimelineEvent = {
 	label: string;
 	icon: ReactNode;
 	time: Date;
 };
 
-function formatTime(date: Date): string {
+export function formatTime(date: Date): string {
 	return date.toLocaleTimeString("en-US", {
 		hour: "2-digit",
 		minute: "2-digit",
@@ -38,7 +38,7 @@ const EVENT_ICONS: Record<string, ReactNode> = {
 	Finished: <SquareIcon size={ICON_SIZE} className={ICON_CLASS} />,
 };
 
-function buildTimeline(intervals: Task["intervals"], status: Task["status"]): TimelineEvent[] {
+export function buildTimeline(intervals: Task["intervals"], status: Task["status"]): TimelineEvent[] {
 	const events: TimelineEvent[] = [];
 
 	intervals.forEach((interval, i) => {
