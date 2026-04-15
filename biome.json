@@ -7,6 +7,6 @@
 		"enabled": true
 	},
 	"files": {
-		"includes": ["**/*", "!node_modules", "!dist", "!.turbo", "!.next"]
+		"includes": ["**/*", "!node_modules", "!dist", "!.turbo", "!.next", "!**/*.css"]
 	}
 }
