@@ -274,7 +274,6 @@ export const CalendarBody = ({ features, children, onDayClick, maxItemsPerDay = 
     const hasTasks = featuresForDay.length > 0;
     const hasMore = featuresForDay.length > maxItemsPerDay;
     const overflowCount = featuresForDay.length - maxItemsPerDay;
-    const isClickable = onDayClick && hasTasks;
 
     days.push(
       <div
