@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useTaskContext } from "@/contexts/task-context";
+import { useGroupContext } from "@/contexts/group-context";
 
 interface NewGroupDialogProps {
 	open: boolean;
@@ -17,7 +17,7 @@ interface NewGroupDialogProps {
 }
 
 export function NewGroupDialog({ open, onOpenChange }: NewGroupDialogProps) {
-	const { addGroup } = useTaskContext();
+	const { addGroup } = useGroupContext();
 	const [name, setName] = useState("");
 
 	function handleSubmit(e: React.FormEvent) {

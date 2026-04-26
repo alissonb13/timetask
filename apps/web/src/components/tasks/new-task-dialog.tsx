@@ -24,6 +24,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useGroupContext } from "@/contexts/group-context";
 import { useTaskContext } from "@/contexts/task-context";
 import { NewGroupDialog } from "./new-group-dialog";
 
@@ -33,7 +34,9 @@ interface NewTaskDialogProps {
 }
 
 export function NewTaskDialog({ open, onOpenChange }: NewTaskDialogProps) {
-	const { groups, addTask } = useTaskContext();
+	const { groups } = useGroupContext();
+	const { addTask } = useTaskContext();
+	const activeGroups = groups.filter((g) => !g.deletedAt);
 	const [title, setTitle] = useState("");
 	const [group, setGroup] = useState("");
 	const [date, setDate] = useState<Date>(startOfDay(new Date()));
@@ -85,9 +88,9 @@ export function NewTaskDialog({ open, onOpenChange }: NewTaskDialogProps) {
 										<SelectValue placeholder="Select a group" />
 									</SelectTrigger>
 									<SelectContent>
-										{groups.map((g) => (
-											<SelectItem key={g} value={g}>
-												{g}
+										{activeGroups.map((g) => (
+											<SelectItem key={g.id} value={g.name}>
+												{g.name}
 											</SelectItem>
 										))}
 									</SelectContent>

@@ -16,6 +16,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import { useGroupContext } from "@/contexts/group-context";
 import { useTaskContext, type Task } from "@/contexts/task-context";
 
 interface EditTaskDialogProps {
@@ -25,7 +26,9 @@ interface EditTaskDialogProps {
 }
 
 export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps) {
-	const { groups, updateTask } = useTaskContext();
+	const { groups } = useGroupContext();
+	const { updateTask } = useTaskContext();
+	const activeGroups = groups.filter((g) => !g.deletedAt);
 	const [title, setTitle] = useState(task.title);
 	const [group, setGroup] = useState(task.group);
 
@@ -65,9 +68,9 @@ export function EditTaskDialog({ task, open, onOpenChange }: EditTaskDialogProps
 								<SelectValue placeholder="Select a group" />
 							</SelectTrigger>
 							<SelectContent>
-								{groups.map((g) => (
-									<SelectItem key={g} value={g}>
-										{g}
+								{activeGroups.map((g) => (
+									<SelectItem key={g.id} value={g.name}>
+										{g.name}
 									</SelectItem>
 								))}
 							</SelectContent>

@@ -129,7 +129,7 @@ const Combobox = ({
       <PopoverTrigger asChild>
         <Button
           aria-expanded={open}
-          className={cn("w-40 justify-between capitalize", className)}
+          className={cn("justify-between capitalize", className)}
           variant="outline"
         >
           {value
@@ -138,7 +138,10 @@ const Combobox = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-40 p-0">
+      <PopoverContent
+        className="p-0"
+        style={{ width: "var(--radix-popover-trigger-width)" }}
+      >
         <Command
           filter={(value, search) => {
             const label = data.find((item) => item.value === value)?.label;
@@ -276,14 +279,16 @@ export const CalendarBody = ({ features, children, onDayClick, maxItemsPerDay = 
     days.push(
       <div
         className={cn(
-          "relative flex h-full w-full flex-col gap-1 p-1 text-xs transition-colors duration-150 cursor-pointer",
+          "relative flex h-full w-full flex-col gap-1 p-1 text-xs transition-colors duration-150",
           isPast && !hasTasks
             ? "bg-muted/40 hover:bg-muted/60"
             : isCurrentDay
               ? "hover:bg-primary/5"
               : "hover:bg-muted/30",
+          hasTasks ? "cursor-pointer" : "",
         )}
         key={day}
+        onClick={() => hasTasks && onDayClick?.(dayDate, featuresForDay)}
       >
         <span
           className={cn(
@@ -293,29 +298,45 @@ export const CalendarBody = ({ features, children, onDayClick, maxItemsPerDay = 
               : isPast
                 ? "text-muted-foreground/40"
                 : "text-muted-foreground",
-            isClickable ? "cursor-pointer hover:bg-muted" : "",
-            isCurrentDay && isClickable ? "hover:opacity-80" : "",
           )}
-          onClick={() => isClickable && onDayClick(dayDate, featuresForDay)}
         >
           {day}
         </span>
 
+        {/* Mobile: dots only */}
+        {hasTasks && (
+          <div className="flex sm:hidden flex-wrap gap-0.5 px-0.5">
+            {featuresForDay.slice(0, 4).map((f) => (
+              <span
+                key={f.id}
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: f.status.color }}
+              />
+            ))}
+            {featuresForDay.length > 4 && (
+              <span className="text-[9px] text-muted-foreground/60 leading-none self-center">
+                +{featuresForDay.length - 4}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Desktop: full task list */}
         {isPast && !hasTasks ? (
-          <div className="flex flex-1 flex-col items-center justify-center gap-1 pb-1">
+          <div className="hidden sm:flex flex-1 flex-col items-center justify-center gap-1 pb-1">
             <InboxIcon size={12} className="text-muted-foreground/25" />
             <span className="text-[10px] text-muted-foreground/25 select-none">No tasks</span>
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-0.5">
+            <div className="hidden sm:flex flex-col gap-0.5">
               {featuresForDay.slice(0, maxItemsPerDay).map((feature) => children({ feature }))}
             </div>
             {hasMore && (
               <button
                 type="button"
-                className="block text-left text-muted-foreground hover:text-foreground text-xs transition-colors cursor-pointer"
-                onClick={() => onDayClick?.(dayDate, featuresForDay)}
+                className="hidden sm:block text-left text-muted-foreground hover:text-foreground text-xs transition-colors cursor-pointer"
+                onClick={(e) => { e.stopPropagation(); onDayClick?.(dayDate, featuresForDay); }}
               >
                 +{overflowCount} more
               </button>
@@ -338,7 +359,7 @@ export const CalendarBody = ({ features, children, onDayClick, maxItemsPerDay = 
   }
 
   return (
-    <div className="grid flex-grow grid-cols-7">
+    <div className="grid grow grid-cols-7">
       {days.map((day, index) => (
         <div
           className={cn(
@@ -493,7 +514,7 @@ export const CalendarHeader = ({ className }: CalendarHeaderProps) => {
   }, [locale, startDay]);
 
   return (
-    <div className={cn("grid flex-grow grid-cols-7", className)}>
+    <div className={cn("grid grow grid-cols-7", className)}>
       {daysData.map((day) => (
         <div className="p-3 text-right text-muted-foreground text-xs" key={day}>
           {day}
