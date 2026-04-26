@@ -36,9 +36,9 @@ import { NewGroupDialog } from "./new-group-dialog";
 type GroupTab = "active" | "archived";
 
 export function GroupsManager() {
-  const { groups, deleteGroup, restoreGroup, renameGroup, permanentlyDeleteGroup } =
+  const { groups, deleteGroup, restoreGroup, renameGroup, permanentlyDeleteGroup, migrateGroupTasks } =
     useGroupContext();
-  const { tasks, migrateTasksGroup } = useTaskContext();
+  const { tasks, reloadTasks } = useTaskContext();
   const [tab, setTab] = useState<GroupTab>("active");
   const [newGroupOpen, setNewGroupOpen] = useState(false);
 
@@ -121,24 +121,21 @@ export function GroupsManager() {
 
   function confirmPermanentDelete() {
     if (!permanentlyDeletingGroup) return;
-    if (permanentDeleteTransferTargetId) {
-      const target = activeGroups.find(
-        (g) => g.id === permanentDeleteTransferTargetId,
-      );
-      if (target) migrateTasksGroup(permanentlyDeletingGroup.name, target.name);
-    }
-    permanentlyDeleteGroup(permanentlyDeletingGroup.id);
+    permanentlyDeleteGroup(
+      permanentlyDeletingGroup.id,
+      permanentDeleteTransferTargetId || undefined,
+    );
     setPermanentlyDeletingGroup(null);
     setPermanentDeleteTransferTargetId("");
+    reloadTasks();
   }
 
   function confirmMigrate() {
     if (!migratingGroup || !migrateTargetId) return;
-    const target = activeGroups.find((g) => g.id === migrateTargetId);
-    if (!target) return;
-    migrateTasksGroup(migratingGroup.name, target.name);
+    migrateGroupTasks(migratingGroup.id, migrateTargetId);
     setMigratingGroup(null);
     setMigrateTargetId("");
+    reloadTasks();
   }
 
   const permanentlyDeletingTaskCount = permanentlyDeletingGroup

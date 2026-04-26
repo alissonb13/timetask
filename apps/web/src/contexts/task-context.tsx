@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { api, type ApiTask } from "@/lib/api";
+import { groupRegistry } from "@/lib/group-registry";
 
 export const TaskStatus = {
   PENDING: "PENDING",
@@ -39,35 +41,24 @@ export function calculateDuration(intervals: TaskInterval[]): number {
   }, 0);
 }
 
-const STORAGE_KEY_TASKS = "timetask:tasks";
-
-function deserializeTasks(json: string): Task[] {
-  return (JSON.parse(json) as Task[]).map((task) => ({
-    ...task,
-    createdAt: new Date(task.createdAt),
-    intervals: (task.intervals ?? []).map((i: TaskInterval) => ({
+function apiTaskToTask(t: ApiTask): Task {
+  const group = groupRegistry.findById(t.groupId);
+  return {
+    id: t.id,
+    title: t.title,
+    group: group?.name ?? "",
+    status: t.status as TaskStatus,
+    createdAt: new Date(t.createdAt),
+    intervals: (t.intervals ?? []).map((i) => ({
       startedAt: new Date(i.startedAt),
       endedAt: i.endedAt ? new Date(i.endedAt) : null,
     })),
-  }));
+  };
 }
-
-function loadTasks(): Task[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_TASKS);
-    return raw ? deserializeTasks(raw) : [];
-  } catch {
-    return [];
-  }
-}
-
 
 interface TaskContextValue {
   tasks: Task[];
   addTask: (title: string, group: string, date?: Date) => void;
-  updateTasksGroupName: (oldName: string, newName: string) => void;
-  deleteTasksByGroup: (groupName: string) => void;
-  migrateTasksGroup: (fromGroup: string, toGroup: string) => void;
   updateTask: (
     id: string,
     updates: Partial<Pick<Task, "title" | "group">>,
@@ -77,126 +68,99 @@ interface TaskContextValue {
   pauseTask: (id: string) => void;
   continueTask: (id: string) => void;
   stopTask: (id: string) => void;
+  reloadTasks: () => void;
 }
 
 const TaskContext = createContext<TaskContextValue | null>(null);
 
 export function TaskProvider({ children }: { children: React.ReactNode }) {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  function loadTasks() {
+    api.tasks.list().then((data) => setTasks(data.map(apiTaskToTask)));
+  }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_TASKS, JSON.stringify(tasks));
-  }, [tasks]);
+    // Delay initial load slightly so GroupProvider can populate the registry first
+    const id = setTimeout(loadTasks, 50);
+    return () => clearTimeout(id);
+  }, []);
 
   function addTask(title: string, group: string, date?: Date) {
-    const task: Task = {
-      id: crypto.randomUUID(),
-      title,
-      group,
-      status: TaskStatus.PENDING,
-      createdAt: date ?? new Date(),
-      intervals: [],
-    };
-    setTasks((prev) => [task, ...prev]);
-  }
-
-  function updateTasksGroupName(oldName: string, newName: string) {
-    setTasks((prev) =>
-      prev.map((t) => (t.group === oldName ? { ...t, group: newName } : t)),
-    );
-  }
-
-  function deleteTasksByGroup(groupName: string) {
-    setTasks((prev) => prev.filter((t) => t.group !== groupName));
-  }
-
-  function migrateTasksGroup(fromGroup: string, toGroup: string) {
-    setTasks((prev) =>
-      prev.map((t) => (t.group === fromGroup ? { ...t, group: toGroup } : t)),
-    );
+    const entry = groupRegistry.findByName(group);
+    if (!entry) return;
+    api.tasks
+      .create({ title, groupId: entry.id, createdAt: date?.toISOString() })
+      .then((data) => setTasks((prev) => [apiTaskToTask(data), ...prev]));
   }
 
   function updateTask(
     id: string,
     updates: Partial<Pick<Task, "title" | "group">>,
   ) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t)),
-    );
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const newTitle = updates.title ?? task.title;
+    const newGroupName = updates.group ?? task.group;
+    const entry = groupRegistry.findByName(newGroupName);
+    if (!entry) return;
+    api.tasks
+      .update(id, { title: newTitle, groupId: entry.id })
+      .then((data) =>
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? apiTaskToTask(data) : t)),
+        ),
+      );
   }
 
   function deleteTask(id: string) {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+    api.tasks
+      .delete(id)
+      .then(() => setTasks((prev) => prev.filter((t) => t.id !== id)));
   }
 
   function startTask(id: string) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              status: TaskStatus.IN_PROGRESS,
-              intervals: [
-                ...t.intervals,
-                { startedAt: new Date(), endedAt: null },
-              ],
-            }
-          : t,
-      ),
-    );
+    api.tasks
+      .start(id)
+      .then((data) =>
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? apiTaskToTask(data) : t)),
+        ),
+      );
   }
 
   function pauseTask(id: string) {
-    const now = new Date();
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        return {
-          ...t,
-          status: TaskStatus.PAUSED,
-          intervals: t.intervals.map((interval, i) =>
-            i === t.intervals.length - 1 && interval.endedAt === null
-              ? { ...interval, endedAt: now }
-              : interval,
-          ),
-        };
-      }),
-    );
+    api.tasks
+      .pause(id)
+      .then((data) =>
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? apiTaskToTask(data) : t)),
+        ),
+      );
   }
 
   function continueTask(id: string) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id
-          ? {
-              ...t,
-              status: TaskStatus.IN_PROGRESS,
-              intervals: [
-                ...t.intervals,
-                { startedAt: new Date(), endedAt: null },
-              ],
-            }
-          : t,
-      ),
-    );
+    api.tasks
+      .continue(id)
+      .then((data) =>
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? apiTaskToTask(data) : t)),
+        ),
+      );
   }
 
   function stopTask(id: string) {
-    const now = new Date();
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        return {
-          ...t,
-          status: TaskStatus.COMPLETED,
-          intervals: t.intervals.map((interval, i) =>
-            i === t.intervals.length - 1 && interval.endedAt === null
-              ? { ...interval, endedAt: now }
-              : interval,
-          ),
-        };
-      }),
-    );
+    api.tasks
+      .stop(id)
+      .then((data) =>
+        setTasks((prev) =>
+          prev.map((t) => (t.id === id ? apiTaskToTask(data) : t)),
+        ),
+      );
+  }
+
+  function reloadTasks() {
+    loadTasks();
   }
 
   return (
@@ -204,15 +168,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       value={{
         tasks,
         addTask,
-        updateTasksGroupName,
-        deleteTasksByGroup,
-        migrateTasksGroup,
         updateTask,
         deleteTask,
         startTask,
         pauseTask,
         continueTask,
         stopTask,
+        reloadTasks,
       }}
     >
       {children}

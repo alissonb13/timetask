@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useTaskContext } from "./task-context";
+import { api, type ApiGroup } from "@/lib/api";
+import { groupRegistry } from "@/lib/group-registry";
 
 export interface Group {
   id: string;
@@ -8,29 +9,13 @@ export interface Group {
   deletedAt: Date | null;
 }
 
-const STORAGE_KEY_GROUPS = "timetask:groups";
-
-function deserializeGroups(json: string): Group[] {
-  const parsed = JSON.parse(json) as (Group | string)[];
-  return parsed.map((g) => {
-    if (typeof g === "string") {
-      return { id: crypto.randomUUID(), name: g, createdAt: new Date(), deletedAt: null };
-    }
-    return {
-      ...g,
-      createdAt: new Date(g.createdAt),
-      deletedAt: g.deletedAt ? new Date(g.deletedAt) : null,
-    };
-  });
-}
-
-function loadGroups(): Group[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY_GROUPS);
-    return raw ? deserializeGroups(raw) : [];
-  } catch {
-    return [];
-  }
+function apiGroupToGroup(g: ApiGroup): Group {
+  return {
+    id: g.id,
+    name: g.name,
+    createdAt: new Date(g.createdAt),
+    deletedAt: g.deletedAt ? new Date(g.deletedAt) : null,
+  };
 }
 
 interface GroupContextValue {
@@ -39,18 +24,23 @@ interface GroupContextValue {
   renameGroup: (id: string, newName: string) => void;
   deleteGroup: (id: string) => void;
   restoreGroup: (id: string) => void;
-  permanentlyDeleteGroup: (id: string) => void;
+  permanentlyDeleteGroup: (id: string, migrateToGroupId?: string) => void;
+  migrateGroupTasks: (fromId: string, toId: string) => void;
 }
 
 const GroupContext = createContext<GroupContextValue | null>(null);
 
 export function GroupProvider({ children }: { children: React.ReactNode }) {
-  const [groups, setGroups] = useState<Group[]>(loadGroups);
-  const { updateTasksGroupName, deleteTasksByGroup } = useTaskContext();
+  const [groups, setGroups] = useState<Group[]>([]);
+
+  // Keep registry in sync so task context can map groupId → name
+  useEffect(() => {
+    groupRegistry.update(groups);
+  }, [groups]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_GROUPS, JSON.stringify(groups));
-  }, [groups]);
+    api.groups.list().then((data) => setGroups(data.map(apiGroupToGroup)));
+  }, []);
 
   function addGroup(name: string) {
     const normalized = name.trim();
@@ -61,19 +51,13 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       )
     )
       return;
-    const group: Group = {
-      id: crypto.randomUUID(),
-      name: normalized,
-      createdAt: new Date(),
-      deletedAt: null,
-    };
-    setGroups((prev) => [group, ...prev]);
+    api.groups
+      .create({ name: normalized })
+      .then((data) => setGroups((prev) => [apiGroupToGroup(data), ...prev]));
   }
 
   function renameGroup(id: string, newName: string) {
     const normalized = newName.trim();
-    const current = groups.find((g) => g.id === id);
-    if (!current) return;
     if (
       groups.some(
         (g) =>
@@ -83,34 +67,56 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
       )
     )
       return;
-    updateTasksGroupName(current.name, normalized);
-    setGroups((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, name: normalized } : g)),
-    );
+    api.groups
+      .rename(id, { name: normalized })
+      .then((data) =>
+        setGroups((prev) =>
+          prev.map((g) => (g.id === id ? apiGroupToGroup(data) : g)),
+        ),
+      );
   }
 
   function deleteGroup(id: string) {
-    setGroups((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, deletedAt: new Date() } : g)),
-    );
+    api.groups
+      .softDelete(id)
+      .then((data) =>
+        setGroups((prev) =>
+          prev.map((g) => (g.id === id ? apiGroupToGroup(data) : g)),
+        ),
+      );
   }
 
   function restoreGroup(id: string) {
-    setGroups((prev) =>
-      prev.map((g) => (g.id === id ? { ...g, deletedAt: null } : g)),
-    );
+    api.groups
+      .restore(id)
+      .then((data) =>
+        setGroups((prev) =>
+          prev.map((g) => (g.id === id ? apiGroupToGroup(data) : g)),
+        ),
+      );
   }
 
-  function permanentlyDeleteGroup(id: string) {
-    const group = groups.find((g) => g.id === id);
-    if (!group) return;
-    deleteTasksByGroup(group.name);
-    setGroups((prev) => prev.filter((g) => g.id !== id));
+  function permanentlyDeleteGroup(id: string, migrateToGroupId?: string) {
+    api.groups
+      .permanentDelete(id, migrateToGroupId ? { migrateToGroupId } : undefined)
+      .then(() => setGroups((prev) => prev.filter((g) => g.id !== id)));
+  }
+
+  function migrateGroupTasks(fromId: string, toId: string) {
+    api.groups.migrateTasks(fromId, { toId });
   }
 
   return (
     <GroupContext
-      value={{ groups, addGroup, renameGroup, deleteGroup, restoreGroup, permanentlyDeleteGroup }}
+      value={{
+        groups,
+        addGroup,
+        renameGroup,
+        deleteGroup,
+        restoreGroup,
+        permanentlyDeleteGroup,
+        migrateGroupTasks,
+      }}
     >
       {children}
     </GroupContext>
@@ -119,6 +125,7 @@ export function GroupProvider({ children }: { children: React.ReactNode }) {
 
 export function useGroupContext(): GroupContextValue {
   const ctx = useContext(GroupContext);
-  if (!ctx) throw new Error("useGroupContext must be used inside GroupProvider");
+  if (!ctx)
+    throw new Error("useGroupContext must be used inside GroupProvider");
   return ctx;
 }

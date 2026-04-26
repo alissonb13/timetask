@@ -1,24 +1,29 @@
 {
-	"name": "timetask",
-	"version": "1.0.0",
-	"private": true,
-	"author": "@boucinhas.dev",
-	"scripts": {
-		"web": "npm run dev -w web",
-		"lint": "biome check .",
-		"format": "biome format .",
-		"fix": "biome check . --write"
-	},
-	"workspaces": [
-		"apps/*",
-		"packages/*"
-	],
-	"devDependencies": {
-		"@biomejs/biome": "^2.4.10",
-		"@faker-js/faker": "^10.4.0"
-	},
-	"dependencies": {
-		"@tailwindcss/vite": "^4.2.2",
-		"tailwindcss": "^4.2.2"
-	}
+  "name": "timetask",
+  "version": "1.0.0",
+  "private": true,
+  "author": "@boucinhas.dev",
+  "scripts": {
+    "web": "npm run dev -w web",
+    "api": "npm run dev -w api",
+    "dev": "npm run web & npm run api",
+    "lint": "biome check .",
+    "format": "biome format .",
+    "fix": "biome check . --write"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.10",
+    "@faker-js/faker": "^10.4.0",
+    "@types/better-sqlite3": "^7.6.13"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.2",
+    "better-sqlite3": "^12.9.0",
+    "tailwindcss": "^4.2.2",
+    "zod": "^4.3.6"
+  }
 }

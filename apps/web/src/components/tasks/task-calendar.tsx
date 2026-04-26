@@ -332,7 +332,11 @@ export function TaskCalendar() {
         <CalendarDate>
           <CalendarDatePicker>
             <CalendarMonthPicker className="w-28 sm:w-40" />
-            <CalendarYearPicker className="w-20 sm:w-32" start={currentYear - 2} end={currentYear + 2} />
+            <CalendarYearPicker
+              className="w-20 sm:w-32"
+              start={currentYear - 2}
+              end={currentYear + 2}
+            />
           </CalendarDatePicker>
           <CalendarDatePagination />
         </CalendarDate>

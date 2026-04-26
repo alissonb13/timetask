@@ -115,7 +115,6 @@ function App() {
       {/* Header */}
       <header className="sticky top-0 z-10 border-b border-border/60 bg-card/80 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-13 sm:h-14 flex items-center justify-between relative">
-
           {/* Left: hamburger (mobile) + logo */}
           <div className="flex items-center gap-2">
             <Button
